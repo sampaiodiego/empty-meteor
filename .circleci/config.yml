@@ -173,7 +173,9 @@ workflows:
             - hold
           filters:
             branches:
-              ignore: develop
+              ignore:
+                - develop
+                - master
             tags:
               only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
 
