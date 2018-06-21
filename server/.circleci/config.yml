@@ -1,0 +1,155 @@
+defaults: &defaults
+  working_directory: ~/repo
+
+version: 2
+jobs:
+  build:
+    <<: *defaults
+    docker:
+      - image: circleci/node:8.9
+
+    steps:
+      - checkout
+
+      # - restore_cache:
+      #     keys:
+      #       - node-modules-cache-{{ checksum ".circleci/config.yml" }}-{{ checksum "package.json" }}
+
+      # - restore_cache:
+      #     keys:
+      #       - meteor-{{ checksum ".circleci/config.yml" }}-{{ checksum ".meteor/release" }}
+
+      - run:
+          name: Build
+          command: |
+            echo "build"
+
+  test-with-oplog:
+    <<: *defaults
+    docker:
+      - image: circleci/node:8.9-browsers
+      - image: mongo:3.4
+        command: [mongod, --nojournal, --noprealloc, --smallfiles, --replSet=rs0]
+
+    steps:
+      - checkout
+
+      - run:
+          name: Test with oplog
+          command: |
+            echo "test-with-oplog"
+
+  test-without-oplog:
+    <<: *defaults
+    docker:
+      - image: circleci/node:8.9-browsers
+      - image: circleci/mongo:3.4
+
+    steps:
+      - checkout
+
+      - run:
+          name: Test without oplog
+          command: |
+            echo "test-without-oplog"
+
+  deploy:
+    <<: *defaults
+    docker:
+      - image: circleci/node:8.9
+
+    steps:
+      - checkout
+
+      - run:
+          name: Deploy
+          command: |
+            echo "deploy"
+
+  image-build:
+    <<: *defaults
+
+    docker:
+      - image: docker:17.05.0-ce-git
+
+    steps:
+      - checkout
+
+      - setup_remote_docker
+
+      - run:
+          name: Build Docker image
+          command: |
+            echo "image-build"
+
+  pr-image-build:
+    <<: *defaults
+
+    docker:
+      - image: docker:17.05.0-ce-git
+
+    steps:
+      - checkout
+
+      - setup_remote_docker
+
+      - run:
+          name: Build Docker image for PRs
+          command: |
+            echo "pr-image-build"
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
+      - test-with-oplog:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
+      - test-without-oplog:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
+      - deploy:
+          requires:
+            - test-with-oplog
+            - test-without-oplog
+          filters:
+            branches:
+              only: develop
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
+      - image-build:
+          requires:
+            - deploy
+          filters:
+            branches:
+              only: develop
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
+      - hold:
+          type: approval
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: develop
+            tags:
+              ignore: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
+      - pr-image-build:
+          requires:
+            - hold
+          filters:
+            branches:
+              ignore: develop
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
+
