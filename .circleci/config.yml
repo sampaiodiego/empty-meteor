@@ -165,7 +165,9 @@ workflows:
             - build
           filters:
             branches:
-              ignore: develop
+              ignore:
+                - develop
+                - master
             tags:
               ignore: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
       - pr-image-build:
@@ -173,9 +175,7 @@ workflows:
             - hold
           filters:
             branches:
-              ignore:
-                - develop
-                - master
+              ignore: develop
             tags:
               only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
 
