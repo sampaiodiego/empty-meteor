@@ -80,7 +80,24 @@ jobs:
       - run:
           name: Build Docker image
           command: |
-            echo "image-build"
+            export CIRCLE_TAG=${CIRCLE_TAG:=}
+            if [[ $CIRCLE_TAG ]]; then
+              echo $CIRCLE_TAG
+
+              if [[ $CIRCLE_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "latest"
+              else
+                echo "release-candidate"
+              fi
+
+              exit 0
+            fi;
+
+            if [[ $CIRCLE_BRANCH == 'develop' ]]; then
+              echo "develop"
+
+              exit 0
+            fi;
 
   pr-image-build:
     <<: *defaults
@@ -96,7 +113,12 @@ jobs:
       - run:
           name: Build Docker image for PRs
           command: |
-            echo "pr-image-build"
+            export CIRCLE_PR_NUMBER="${CIRCLE_PR_NUMBER:-${CIRCLE_PULL_REQUEST##*/}}"
+            if [[ -z $CIRCLE_PR_NUMBER ]]; then
+              echo "sai fora"
+              exit 0
+            fi;
+            echo $CIRCLE_PR_NUMBER
 
 workflows:
   version: 2
