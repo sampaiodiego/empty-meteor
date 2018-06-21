@@ -84,10 +84,12 @@ jobs:
             if [[ $CIRCLE_TAG ]]; then
               echo $CIRCLE_TAG
 
-              if [[ $CIRCLE_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              if echo "$CIRCLE_TAG" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' ; then
                 echo "latest"
-              else
+              elif echo "$CIRCLE_TAG" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$' ; then
                 echo "release-candidate"
+              else
+                echo "nada"
               fi
 
               exit 0
@@ -163,7 +165,9 @@ workflows:
             - build
           filters:
             branches:
-              ignore: develop
+              ignore:
+                - develop
+                - master
             tags:
               ignore: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
       - pr-image-build:
