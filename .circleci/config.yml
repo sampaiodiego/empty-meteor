@@ -22,36 +22,7 @@ jobs:
       - run:
           name: Build
           command: |
-            echo "build"
-
-  test-with-oplog:
-    <<: *defaults
-    docker:
-      - image: circleci/node:8.9-browsers
-      - image: mongo:3.4
-        command: [mongod, --nojournal, --noprealloc, --smallfiles, --replSet=rs0]
-
-    steps:
-      - checkout
-
-      - run:
-          name: Test with oplog
-          command: |
-            echo "test-with-oplog"
-
-  test-without-oplog:
-    <<: *defaults
-    docker:
-      - image: circleci/node:8.9-browsers
-      - image: circleci/mongo:3.4
-
-    steps:
-      - checkout
-
-      - run:
-          name: Test without oplog
-          command: |
-            echo "test-without-oplog"
+            echo "build" > fiz-o-build.txt
 
   deploy:
     <<: *defaults
@@ -59,123 +30,20 @@ jobs:
       - image: circleci/node:8.9
 
     steps:
-      - checkout
+      - attach_workspace:
+          at: ~/repo
 
       - run:
           name: Deploy
           command: |
             echo "deploy"
-
-  image-build:
-    <<: *defaults
-
-    docker:
-      - image: docker:17.05.0-ce-git
-
-    steps:
-      - checkout
-
-      - setup_remote_docker
-
-      - run:
-          name: Build Docker image
-          command: |
-            export CIRCLE_TAG=${CIRCLE_TAG:=}
-            if [[ $CIRCLE_TAG ]]; then
-              echo $CIRCLE_TAG
-
-              if echo "$CIRCLE_TAG" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' ; then
-                echo "latest"
-              elif echo "$CIRCLE_TAG" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$' ; then
-                echo "release-candidate"
-              else
-                echo "nada"
-              fi
-
-              exit 0
-            fi;
-
-            if [[ $CIRCLE_BRANCH == 'develop' ]]; then
-              echo "develop"
-
-              exit 0
-            fi;
-
-  pr-image-build:
-    <<: *defaults
-
-    docker:
-      - image: docker:17.05.0-ce-git
-
-    steps:
-      - checkout
-
-      - setup_remote_docker
-
-      - run:
-          name: Build Docker image for PRs
-          command: |
-            export CIRCLE_PR_NUMBER="${CIRCLE_PR_NUMBER:-${CIRCLE_PULL_REQUEST##*/}}"
-            if [[ -z $CIRCLE_PR_NUMBER ]]; then
-              echo "sai fora"
-              exit 0
-            fi;
-            echo $CIRCLE_PR_NUMBER
+            cat fiz-o-build.txt
 
 workflows:
   version: 2
   build-and-test:
     jobs:
-      - build:
-          filters:
-            tags:
-              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
-      - test-with-oplog:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
-      - test-without-oplog:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
+      - build
       - deploy:
           requires:
-            - test-with-oplog
-            - test-without-oplog
-          filters:
-            branches:
-              only: develop
-            tags:
-              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
-      - image-build:
-          requires:
-            - deploy
-          filters:
-            branches:
-              only: develop
-            tags:
-              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
-      - hold:
-          type: approval
-          requires:
             - build
-          filters:
-            branches:
-              ignore:
-                - develop
-                - master
-            tags:
-              ignore: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
-      - pr-image-build:
-          requires:
-            - hold
-          filters:
-            branches:
-              ignore: develop
-            tags:
-              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/
-
