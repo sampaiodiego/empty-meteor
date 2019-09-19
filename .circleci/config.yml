@@ -11,14 +11,6 @@ jobs:
     steps:
       - checkout
 
-      # - restore_cache:
-      #     keys:
-      #       - node-modules-cache-{{ checksum ".circleci/config.yml" }}-{{ checksum "package.json" }}
-
-      # - restore_cache:
-      #     keys:
-      #       - meteor-{{ checksum ".circleci/config.yml" }}-{{ checksum ".meteor/release" }}
-
       - run:
           name: Build
           command: |
