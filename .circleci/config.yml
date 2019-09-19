@@ -28,6 +28,7 @@ jobs:
       - run:
           name: Deploy
           command: |
+            ls -la
             echo "deploy"
             cat fiz-o-build.txt
 
